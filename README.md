@@ -67,6 +67,41 @@ Both services are integrated using the **JWT (JSON Web Token)** standard to secu
 
 ## ⚙️ Running the Services (Development Guide)
 
+## 📡 Real-time Telemetry Streaming
+
+The **Device Service** now supports real-time data streaming using **SSE (Server-Sent Events)**. This allows the frontend to receive instant updates whenever an IoT device pushes new telemetry data, without needing to refresh the page or poll the API.
+
+### 🏗️ The Broker Pattern
+To handle multiple concurrent users watching the same or different devices, the service implements a **Broadcaster/Broker pattern**:
+
+1.  **Publisher (IoT Device):** When a device sends data to `/api/iot/`, the `InsertTelemetry` service saves it to the database and simultaneously pushes the data into the **Broker's Notifier channel**.
+2.  **Broker (Internal Service):** The Broker maintains a registry of all active client connections. It listens for new data and "broadcasts" a copy to every connected client's unique channel.
+3.  **Subscriber (Frontend):** The SSE handler creates a persistent HTTP connection. It filters the broadcasted data by `device_id` and streams matching events to the client in real-time.
+
+### 🗺️ Updated Telemetry Routes:
+
+| Access | Method | Route | Description |
+| :---: | :---: | :--- | :--- |
+| **IoT Device** | `POST` | `/api/iot/` | Pushes new sensor data (Triggers Real-time Broadcast). |
+| **Authorized** | `GET` | `/api/telemetry/:device_id` | Retrieves the latest single telemetry record from DB. |
+| **Authorized** | `GET` | `/api/telemetry/:device_id/stream` | **Real-time SSE Stream:** Keeps a persistent connection open for live updates. |
+
+### 🛠️ How to Consume the Stream (Frontend Example)
+Since it uses the standard SSE protocol, you can easily consume the data using the native `EventSource` API in JavaScript:
+
+```javascript
+const eventSource = new EventSource('http://localhost:8081/api/telemetry/device-123/stream');
+
+eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log("New Telemetry Received:", data);
+    // Update your charts or dashboard UI here
+};
+
+eventSource.onerror = (err) => {
+    console.error("SSE Connection Failed:", err);
+};
+
 ### 1. Clone the Repository
 
 ```bash
