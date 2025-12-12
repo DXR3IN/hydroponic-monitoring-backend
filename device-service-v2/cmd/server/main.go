@@ -32,9 +32,10 @@ func main() {
 		log.Fatalf("failed to migrate: %v", err)
 	}
 
-	userRepo := repo.NewDeviceRepository(db)
+	deviceRepo := repo.NewDeviceRepository(db)
+	telemetryRepo := repo.NewTelemetryRepository(db)
 
-	r := http.NewRouter(cfg, userRepo)
+	r := http.NewRouter(cfg, deviceRepo, telemetryRepo)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Starting server at %s", addr)

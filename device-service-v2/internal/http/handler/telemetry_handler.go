@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"net/http"
+
 	models "github.com/DXR3IN/device-service-v2/internal/domain"
 	"github.com/DXR3IN/device-service-v2/internal/service"
 	"github.com/gin-gonic/gin"
@@ -40,6 +42,37 @@ func (h *TelemetryHandler) InsertTelemetry(c *gin.Context) {
 	c.JSON(201, response)
 }
 
-func (h *TelemetryHandler) GetAllTelemetry(c *gin.Context){
-	
+func (h *TelemetryHandler) GetLatestTelemetry(c *gin.Context) {
+	deviceID := c.Param("device_id")
+	data, err := h.svc.GetLatestTelemetryByDeviceID(deviceID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get latest Telemetry"})
+		return
+	}
+	c.JSON(http.StatusOK, data)
+}
+
+func (h *TelemetryHandler) StreamLatestTelemetry(c *gin.Context) {
+	deviceID := c.Param("device_id")
+	clientChan := make(chan *models.Telemetry)
+	h.svc.Broker.NewClients <- clientChan
+
+	defer func() {
+		h.svc.Broker.ClosingClients <- clientChan
+	}()
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	// ... header lainnya sama ...
+
+	for {
+		select {
+		case data := <-clientChan:
+			if data.DeviceID == deviceID {
+				c.SSEvent("message", data)
+				c.Writer.Flush()
+			}
+		case <-c.Request.Context().Done():
+			return
+		}
+	}
 }

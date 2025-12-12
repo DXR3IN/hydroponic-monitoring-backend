@@ -17,10 +17,12 @@ type TelemetryService struct {
 	repo       repository.TelemetryRepository
 	deviceRepo repository.DeviceRepository
 	jwt        *utils.JWTManager
+	Broker     *Broker
 }
 
 func NewTelemetryService(r repository.TelemetryRepository, jwt *utils.JWTManager, ds repository.DeviceRepository) *TelemetryService {
-	return &TelemetryService{repo: r, jwt: jwt, deviceRepo: ds}
+	broker := NewBroker()
+	return &TelemetryService{repo: r, jwt: jwt, deviceRepo: ds, Broker: broker}
 }
 
 func (s *TelemetryService) GetTelemetryByDeviceID(duration time.Duration, deviceID string) ([]*models.Telemetry, error) {
@@ -50,8 +52,15 @@ func (s *TelemetryService) InsertTelemetry(t *models.Telemetry) (*models.Telemet
 	if err != nil {
 		return nil, err
 	}
-	return insertedRepoData.ToDomain(), nil
+	data := insertedRepoData.ToDomain()
+
+	// gave info to the broker that there is a new data on database
+	s.Broker.Notifier <- data
+
+	return data, nil
 }
+
+var TelemetryStream = make(chan *models.Telemetry)
 
 func (s *TelemetryService) GetLatestTelemetryByDeviceID(deviceID string) (*models.Telemetry, error) {
 	telemetries, err := s.repo.GetLatestTelemetryByDeviceID(deviceID)
