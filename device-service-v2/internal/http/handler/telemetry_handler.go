@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	models "github.com/DXR3IN/device-service-v2/internal/domain"
 	"github.com/DXR3IN/device-service-v2/internal/service"
@@ -42,6 +43,21 @@ func (h *TelemetryHandler) InsertTelemetry(c *gin.Context) {
 	c.JSON(201, response)
 }
 
+func (h *TelemetryHandler) GetTelemetryByDeviceID(c *gin.Context) {
+	deviceID := c.Param("device_id")
+	durationStr := c.DefaultQuery("duration", "1h") // default 1 jam jika kosong
+	duration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "format durasi salah (contoh: 1h, 30m, 24h)"})
+		return
+	}
+	data, err := h.svc.GetTelemetryByDeviceID(duration, deviceID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get the telemetry at: " + durationStr})
+	}
+	c.JSON(http.StatusOK, data)
+}
+
 func (h *TelemetryHandler) GetLatestTelemetry(c *gin.Context) {
 	deviceID := c.Param("device_id")
 	data, err := h.svc.GetLatestTelemetryByDeviceID(deviceID)
@@ -52,6 +68,7 @@ func (h *TelemetryHandler) GetLatestTelemetry(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+// SSE stream event handler
 func (h *TelemetryHandler) StreamLatestTelemetry(c *gin.Context) {
 	deviceID := c.Param("device_id")
 	clientChan := make(chan *models.Telemetry)
@@ -62,7 +79,6 @@ func (h *TelemetryHandler) StreamLatestTelemetry(c *gin.Context) {
 	}()
 
 	c.Writer.Header().Set("Content-Type", "text/event-stream")
-	// ... header lainnya sama ...
 
 	for {
 		select {

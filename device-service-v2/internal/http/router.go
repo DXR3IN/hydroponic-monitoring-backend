@@ -14,6 +14,8 @@ func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository, telem
 	r := ginpkg.Default()
 
 	jwtMgr := utils.NewJWTManagerFromEnv()
+
+	// Device routes
 	deviceSvc := service.NewDeviceService(deviceRepo, jwtMgr)
 	deviceHandler := h.NewDeviceHandler(deviceSvc)
 
@@ -32,7 +34,8 @@ func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository, telem
 	//Backend to Frontend
 	telemetry := r.Group("/api/telemetry")
 	telemetry.Use(middleware.DeviceRequired(jwtMgr))
-	telemetry.GET("/:device_id", telemetryHandler.GetLatestTelemetry)
+	telemetry.GET("/:device_id", telemetryHandler.GetTelemetryByDeviceID)
+	telemetry.GET("/:device_id/latest", telemetryHandler.GetLatestTelemetry)
 	telemetry.GET("/:device_id/stream", telemetryHandler.StreamLatestTelemetry)
 
 	// IoT device to Backend

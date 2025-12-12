@@ -102,6 +102,8 @@ eventSource.onerror = (err) => {
     console.error("SSE Connection Failed:", err);
 };
 
+```
+
 ### 1. Clone the Repository
 
 ```bash

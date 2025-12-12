@@ -26,6 +26,13 @@ func NewTelemetryService(r repository.TelemetryRepository, jwt *utils.JWTManager
 }
 
 func (s *TelemetryService) GetTelemetryByDeviceID(duration time.Duration, deviceID string) ([]*models.Telemetry, error) {
+	ex, err := s.deviceRepo.FindByID(deviceID)
+	if err != nil {
+		return nil, err
+	}
+	if ex != nil {
+		return nil, ErrDeviceExists
+	}
 	// t is a telemetry variable
 	t, err := s.repo.GetTelemetryByDeviceID(duration, deviceID)
 	if t == nil {
@@ -63,6 +70,13 @@ func (s *TelemetryService) InsertTelemetry(t *models.Telemetry) (*models.Telemet
 var TelemetryStream = make(chan *models.Telemetry)
 
 func (s *TelemetryService) GetLatestTelemetryByDeviceID(deviceID string) (*models.Telemetry, error) {
+	ex, err := s.deviceRepo.FindByID(deviceID)
+	if err != nil {
+		return nil, err
+	}
+	if ex != nil {
+		return nil, ErrDeviceExists
+	}
 	telemetries, err := s.repo.GetLatestTelemetryByDeviceID(deviceID)
 	if err != nil {
 		return nil, err
