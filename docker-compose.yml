@@ -1,0 +1,79 @@
+services:
+  auth-service-v2:
+    build:
+      context: ./auth-service-v2
+    container_name: auth-service-v2
+    ports:
+      - "8081:8081"
+    env_file:
+      - ./auth-service-v2/.env
+    depends_on:
+      auth-db-v2:
+        condition: service_healthy
+    restart: unless-stopped
+  
+  device-service-v2:
+    build:
+      context: ./device-service-v2
+      dockerfile: Dockerfile
+    container_name: device-service-v2
+    ports:
+      - "8082:8082"
+    env_file:
+      - "./device-service-v2/.env"
+    depends_on:
+      device-db-v2:
+        condition: service_healthy
+    restart: unless-stopped
+
+  auth-db-v2:
+    image: postgres:15
+    container_name: ${POSTGRES_CONTAINER_AUTH_NAME}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_AUTH_DB}
+    volumes:
+      - auth_data_v2:/var/lib/postgresql/data
+      # - ./postgres_init.sql:/docker-entrypoint-initdb.d/postgres_init.sql
+    ports:
+      - "${PORT_AUTH_DB}:${PORT_AUTH_DB}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_AUTH_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  device-db-v2:
+    image: postgres:15
+    container_name: ${POSTGRES_CONTAINER_DEVICE_NAME}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DEVICE_DB}
+    volumes:
+      - device_data_v2:/var/lib/postgresql/data
+    ports:
+      - "${PORT_DEVICE_DB}:${PORT_DEVICE_DB}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DEVICE_DB}"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-v2
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service-v2
+    restart: unless-stopped
+
+volumes:
+  auth_data_v2:
+  device_data_v2:
