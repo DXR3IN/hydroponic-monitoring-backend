@@ -1,6 +1,6 @@
-# 🚀 Device Service V2 & Auth Service V2
+# 🚀 Telemetry Service V2 & Device Service V2
 
-This project implements a modular and isolated **Microservice** architecture, developed using the **Go** language and the **Gin** web framework. The system consists of two main independent services: the **Auth Service** (Identity Management) and the **Device Service** (Device Management).
+This project implements a modular and isolated **Microservice** architecture, developed using the **Go** language and the **Gin** web framework. The system consists of three main independent services: the **Auth Service** (Identity Management), the **Device Service** (Device Management), and the **Telemetry Service** (Data Management).
 
 ## 🛠️ System Requirements
 
@@ -39,9 +39,11 @@ This service is solely responsible for user identity management, authentication,
 | **Authenticated**| `PUT` | `/api/me/name` | Modifies user identity data (name). |
 | **General** | `GET` | `/api/health`| Service health status check. |
 
+---
+
 ### 2. 📱 Device Service (`device-service-v2`)
 
-This service manages all device and telemetry data, including CRUD operations requiring owner authorization.
+This service manages all device data, including CRUD operations, status streaming, and owner authorization.
 
 #### 🗺️ Routes (Endpoints):
 
@@ -52,6 +54,24 @@ This service manages all device and telemetry data, including CRUD operations re
 | **Authorized**| `GET` | `/api/devices/:id` | Retrieves specific details for a single Device. |
 | **Authorized**| `PUT` | `/api/devices/:id` | Updates an existing Device resource. |
 | **Authorized**| `DELETE` | `/api/devices/:id` | Deletes a Device resource. |
+| **Authorized**| `GET` | `/api/devices/stream` | **SSE Stream:** *Stream* status semua *device* milik pemilik yang diautentikasi. |
+| **IoT Device** | `POST` | `/api/device/iot/status` | **IoT Endpoint:** Memperbarui status konektivitas *device* (e.g., *online/offline*). |
+
+---
+
+### 3. 📊 Telemetry Service (`telemetry-service-v2`)
+
+This service manages the handling, storage, and real-time streaming of sensor and telemetry data from IoT devices.
+
+#### 🗺️ Routes (Endpoints):
+
+| Akses | Method | Route | Deskripsi |
+| :---: | :---: | :--- | :--- |
+| **Authorized**| `GET` | `/api/telemetry/:device_id` | Mengambil semua data telemetri untuk *device* tertentu. |
+| **Authorized**| `GET` | `/api/telemetry/:device_id/latest` | Mengambil satu data telemetri **terbaru** (non-stream) untuk *device*. |
+| **Authorized**| `GET` | `/api/telemetry/:device_id/stream` | **SSE Stream:** Menjaga koneksi untuk pembaruan telemetri *real-time*. |
+| **IoT Device**| `POST` | `/api/telemetry/iot/telemetry` | **IoT Endpoint:** Menyisipkan data telemetri baru dari *device* IoT. |
+| **IoT Device**| `POST` | `/api/telemetry/iot/status` | **IoT Endpoint:** Endpoint status *device* (Saat ini dideklarasikan, fungsionalitasnya mungkin perlu disinkronkan dengan Device Service). |
 
 ---
 
@@ -59,31 +79,30 @@ This service manages all device and telemetry data, including CRUD operations re
 
 Both services are integrated using the **JWT (JSON Web Token)** standard to secure access to `/api/` routes.
 
-1.  The **Auth Service** issues a JWT upon successful `/login`.
-2.  This token must be included in the `Authorization: Bearer <token>` header to access all protected routes on both services.
-3.  Dedicated middleware (`AuthRequired` / `DeviceRequired`) validates the token's integrity and the user's authorization before allowing access to the handlers.
+1.  The **Auth Service** issues a JWT upon successful `/login`.
+2.  This token must be included in the `Authorization: Bearer <token>` header to access all protected routes on both services.
+3.  Dedicated middleware (`DeviceRequired`, `IoTRequired`) validates the token's integrity and the required authorization scope before allowing access to the handlers.
 
 ---
 
-## ⚙️ Running the Services (Development Guide)
-
 ## 📡 Real-time Telemetry Streaming
 
-The **Device Service** now supports real-time data streaming using **SSE (Server-Sent Events)**. This allows the frontend to receive instant updates whenever an IoT device pushes new telemetry data, without needing to refresh the page or poll the API.
+The **Telemetry Service** supports real-time data streaming using **SSE (Server-Sent Events)**. This allows the frontend to receive instant updates whenever an IoT device pushes new telemetry data.
 
 ### 🏗️ The Broker Pattern
-To handle multiple concurrent users watching the same or different devices, the service implements a **Broadcaster/Broker pattern**:
+To handle multiple concurrent users, the service implements a **Broadcaster/Broker pattern**:
 
-1.  **Publisher (IoT Device):** When a device sends data to `/api/iot/`, the `InsertTelemetry` service saves it to the database and simultaneously pushes the data into the **Broker's Notifier channel**.
-2.  **Broker (Internal Service):** The Broker maintains a registry of all active client connections. It listens for new data and "broadcasts" a copy to every connected client's unique channel.
-3.  **Subscriber (Frontend):** The SSE handler creates a persistent HTTP connection. It filters the broadcasted data by `device_id` and streams matching events to the client in real-time.
+1.  **Publisher (IoT Device):** When a device sends data to `/api/telemetry/iot/telemetry`, the service saves it to the database and pushes the data into the **Broker's Notifier channel**.
+2.  **Broker (Internal Service):** The Broker maintains a registry of all active client connections. It listens for new data and "broadcasts" a copy to every connected client's unique channel.
+3.  **Subscriber (Frontend):** The SSE handler creates a persistent HTTP connection. It filters the broadcasted data by `device_id` and streams matching events to the client in real-time.
 
-### 🗺️ Updated Telemetry Routes:
+### 🗺️ Telemetry Routes for Data Access:
 
 | Access | Method | Route | Description |
 | :---: | :---: | :--- | :--- |
-| **IoT Device** | `POST` | `/api/iot/` | Pushes new sensor data (Triggers Real-time Broadcast). |
-| **Authorized** | `GET` | `/api/telemetry/:device_id` | Retrieves the latest single telemetry record from DB. |
+| **IoT Device** | `POST` | `/api/telemetry/iot/telemetry` | Pushes new sensor data (Triggers Real-time Broadcast). |
+| **Authorized** | `GET` | `/api/telemetry/:device_id` | Retrieves all telemetry records for a specific device from DB. |
+| **Authorized** | `GET` | `/api/telemetry/:device_id/latest` | Retrieves the latest single telemetry record from DB. |
 | **Authorized** | `GET` | `/api/telemetry/:device_id/stream` | **Real-time SSE Stream:** Keeps a persistent connection open for live updates. |
 
 ### 🛠️ How to Consume the Stream (Frontend Example)
@@ -93,19 +112,11 @@ Since it uses the standard SSE protocol, you can easily consume the data using t
 const eventSource = new EventSource('http://localhost:8081/api/telemetry/device-123/stream');
 
 eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log("New Telemetry Received:", data);
-    // Update your charts or dashboard UI here
+    const data = JSON.parse(event.data);
+    console.log("New Telemetry Received:", data);
+    // Update your charts or dashboard UI here
 };
 
 eventSource.onerror = (err) => {
-    console.error("SSE Connection Failed:", err);
+    console.error("SSE Connection Failed:", err);
 };
-
-```
-
-### 1. Clone the Repository
-
-```bash
-git clone <YOUR_REPO_URL>
-cd <YOUR_PROJECT_DIRECTORY_NAME>
