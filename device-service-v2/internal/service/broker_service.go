@@ -1,20 +1,18 @@
 package service
 
-import models "github.com/DXR3IN/device-service-v2/internal/domain"
-
 type Broker struct {
-	Notifier       chan *models.Telemetry
-	Clients        map[chan *models.Telemetry]bool
-	NewClients     chan chan *models.Telemetry
-	ClosingClients chan chan *models.Telemetry
+	Notifier       chan interface{}
+	Clients        map[chan interface{}]bool
+	NewClients     chan chan interface{}
+	ClosingClients chan chan interface{}
 }
 
 func NewBroker() *Broker {
 	b := &Broker{
-		Notifier:       make(chan *models.Telemetry, 1),
-		Clients:        make(map[chan *models.Telemetry]bool),
-		NewClients:     make(chan chan *models.Telemetry),
-		ClosingClients: make(chan chan *models.Telemetry),
+		Notifier:       make(chan interface{}, 1),
+		Clients:        make(map[chan interface{}]bool),
+		NewClients:     make(chan chan interface{}),
+		ClosingClients: make(chan chan interface{}),
 	}
 	go b.listen()
 	return b

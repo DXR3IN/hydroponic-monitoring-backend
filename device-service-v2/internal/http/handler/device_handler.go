@@ -18,7 +18,7 @@ func NewDeviceHandler(svc *service.DeviceService) *DeviceHandler {
 
 type responseWithMessage struct {
 	Message string      `json:"message"`
-	Data    interface{} `json:"data"`
+	Devices interface{} `json:"devices"`
 }
 
 type getAllDevicesResp struct {
@@ -50,7 +50,7 @@ func (h *DeviceHandler) CreateDevice(c *gin.Context) {
 
 	response := responseWithMessage{
 		Message: "Device Created Successfully",
-		Data:    device,
+		Devices: device,
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -85,7 +85,7 @@ func (h *DeviceHandler) GetDeviceWithID(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	c.JSON(200, responseWithMessage{Message: "device found", Data: device})
+	c.JSON(200, responseWithMessage{Message: "device found", Devices: device})
 }
 
 func (h *DeviceHandler) DeleteDevices(c *gin.Context) {
@@ -110,14 +110,13 @@ func (h *DeviceHandler) UpdateDeviceWithOwnerIDandID(c *gin.Context) {
 		return
 	}
 	var req struct {
-		DeviceID   string `json:"device_id" binding:"required,uuid4"`
 		DeviceName string `json:"device_name" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	device, err := h.svc.UpdateDevice(ownerID, c.Param("id"), req.DeviceID, req.DeviceName)
+	device, err := h.svc.UpdateDevice(ownerID, c.Param("id"), req.DeviceName)
 	if err != nil {
 		if err == service.ErrDeviceNotFound {
 			c.JSON(404, gin.H{"error": "device not found"})
@@ -127,8 +126,56 @@ func (h *DeviceHandler) UpdateDeviceWithOwnerIDandID(c *gin.Context) {
 		return
 	}
 	response := responseWithMessage{
-		Message : "Device Updated Successfully",
-		Data    : device,
+		Message: "Device Updated Successfully",
+		Devices: device,
 	}
 	c.JSON(200, response)
+}
+
+// Communication function with the IoT devices
+func (h *DeviceHandler) UpdateDeviceStatusByID(c *gin.Context) {
+	var req struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	data, err := h.svc.UpdateDeviceStatusByID(req.ID, req.Status)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "internal server error"})
+		return
+	}
+	response := responseWithMessage{
+		Message: "Device status update Successfully",
+		Devices: data,
+	}
+	c.JSON(201, response)
+}
+
+// SSE stream event handler
+func (h *DeviceHandler) StreamDeviceStatus(c *gin.Context) {
+	clientChan := make(chan interface{})
+	h.svc.Broker.NewClients <- clientChan
+
+	defer func() {
+		h.svc.Broker.ClosingClients <- clientChan
+	}()
+
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+
+	for {
+		select {
+		case data := <-clientChan:
+			c.SSEvent("device_status_update", data)
+			c.Writer.Flush()
+
+		case <-c.Request.Context().Done():
+			return
+		}
+	}
 }

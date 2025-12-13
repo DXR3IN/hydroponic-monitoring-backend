@@ -14,6 +14,7 @@ type Device struct {
 	UpdatedAt  time.Time
 	DeviceName string `gorm:"not null"`
 	OwnerID    string `gorm:"type:uuid;not null"`
+	Status     string `gorm:"type:varchar(20);not null;default:'Offline'"`
 }
 
 func (d *Device) ToDomain() *models.Device {
@@ -27,6 +28,7 @@ func (d *Device) ToDomain() *models.Device {
 		OwnerID:    d.OwnerID,
 		CreatedAt:  d.CreatedAt,
 		UpdatedAt:  d.UpdatedAt,
+		Status:     d.Status,
 	}
 }
 
@@ -35,7 +37,8 @@ type DeviceRepository interface {
 	FindByID(id string) (*models.Device, error)
 	FindByOwnerID(ownerID string) ([]*models.Device, error)
 	DeleteByOwnerID(ownerID string) error
-	UpdateDevice(ownerID, deviceID, newDeviceID string, deviceName string) (*models.Device, error)
+	UpdateDevice(ownerID, deviceID, deviceName string) (*models.Device, error)
+	UpdateStatusByID(deviceID, status string) (*models.Device, error)
 }
 
 type deviceRepo struct {
@@ -77,7 +80,7 @@ func (r *deviceRepo) DeleteByOwnerID(ownerID string) error {
 	return r.db.Where("owner_id = ?", ownerID).Delete(&Device{}).Error
 }
 
-func (r *deviceRepo) UpdateDevice(ownerID, deviceID, newDeviceID, deviceName string) (*models.Device, error) {
+func (r *deviceRepo) UpdateDevice(ownerID, deviceID, deviceName string) (*models.Device, error) {
 	var device Device
 	if err := r.db.First(&device, "id = ? AND owner_id =?", deviceID, ownerID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -88,6 +91,21 @@ func (r *deviceRepo) UpdateDevice(ownerID, deviceID, newDeviceID, deviceName str
 	device.DeviceName = deviceName
 	device.UpdatedAt = time.Time{}
 	if err := r.db.Save(&device).Error; err != nil {
+		return nil, err
+	}
+	return device.ToDomain(), nil
+}
+
+func (r *deviceRepo) UpdateStatusByID(deviceID, status string) (*models.Device, error) {
+	var device Device
+	if err := r.db.First(&device, "id = ?", deviceID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	device.Status = status
+	if err := r.db.First(&device, "id = ?", deviceID).Error; err != nil {
 		return nil, err
 	}
 	return device.ToDomain(), nil

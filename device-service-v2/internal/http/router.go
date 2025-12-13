@@ -10,7 +10,7 @@ import (
 	ginpkg "github.com/gin-gonic/gin"
 )
 
-func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository, telemetryRepo repository.TelemetryRepository) *ginpkg.Engine {
+func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository) *ginpkg.Engine {
 	r := ginpkg.Default()
 
 	jwtMgr := utils.NewJWTManagerFromEnv()
@@ -26,22 +26,12 @@ func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository, telem
 	device.GET("/:id", deviceHandler.GetDeviceWithID)
 	device.PUT("/:id", deviceHandler.UpdateDeviceWithOwnerIDandID)
 	device.DELETE("/:id", deviceHandler.DeleteDevices)
+	device.GET("/stream", deviceHandler.StreamDeviceStatus)
 
-	// Telemetry routes
-	telemetrySvc := service.NewTelemetryService(telemetryRepo, jwtMgr, deviceRepo)
-	telemetryHandler := h.NewTelemetryHandler(telemetrySvc)
-
-	//Backend to Frontend
-	telemetry := r.Group("/api/telemetry")
-	telemetry.Use(middleware.DeviceRequired(jwtMgr))
-	telemetry.GET("/:device_id", telemetryHandler.GetTelemetryByDeviceID)
-	telemetry.GET("/:device_id/latest", telemetryHandler.GetLatestTelemetry)
-	telemetry.GET("/:device_id/stream", telemetryHandler.StreamLatestTelemetry)
-
-	// IoT device to Backend
-	iot := r.Group("/api/iot")
-	iot.Use(middleware.IoTRequired())
-	iot.POST("/", telemetryHandler.InsertTelemetry)
+	// IoT into the devices
+	iotToDevice := r.Group("/api/device/iot")
+	iotToDevice.Use(middleware.IoTRequired())
+	iotToDevice.POST("/status", deviceHandler.UpdateDeviceStatusByID)
 
 	return r
 }

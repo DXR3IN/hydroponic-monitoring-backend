@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	models "github.com/DXR3IN/device-service-v2/internal/domain"
 	"github.com/DXR3IN/device-service-v2/internal/repository"
@@ -9,13 +10,14 @@ import (
 )
 
 var (
-	ErrDeviceExists       = errors.New("device already exists")
-	ErrDeviceNotFound     = errors.New("device not found")
+	ErrDeviceExists   = errors.New("device already exists")
+	ErrDeviceNotFound = errors.New("device not found")
 )
 
 type DeviceService struct {
-	repo repository.DeviceRepository
-	jwt  *utils.JWTManager
+	repo   repository.DeviceRepository
+	jwt    *utils.JWTManager
+	Broker *Broker
 }
 
 func NewDeviceService(r repository.DeviceRepository, jwt *utils.JWTManager) *DeviceService {
@@ -69,18 +71,43 @@ func (s *DeviceService) DeleteDevicesByOwnerID(ownerID string) error {
 	return s.repo.DeleteByOwnerID(ownerID)
 }
 
-func (s *DeviceService) UpdateDevice(ownerID, deviceID, newDeviceID string, deviceName string) (*models.Device, error) {
+func (s *DeviceService) UpdateDevice(ownerID, deviceID, deviceName string) (*models.Device, error) {
 	_, err := s.repo.FindByID(deviceID)
 	if err != nil {
 		return nil, err
 	}
 
-	d, err := s.repo.UpdateDevice(ownerID, deviceID, newDeviceID, deviceName)
+	d, err := s.repo.UpdateDevice(ownerID, deviceID, deviceName)
 	if err != nil {
 		return nil, err
 	}
 	return d, nil
+}
 
+func (s *DeviceService) UpdateDeviceStatusByID(deviceID, status string) (*models.Device, error) {
+	_, err := s.repo.FindByID(deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	d, err := s.repo.UpdateStatusByID(deviceID, status)
+	if err != nil {
+		return nil, err
+	}
+	if s.Broker != nil {
+		notification := struct {
+			ID     string    `json:"device_id"`
+			Status string    `json:"status"`
+			Time   time.Time `json:"time"`
+		}{
+			ID:     d.ID,
+			Status: d.Status,
+			Time:   time.Now(),
+		}
+
+		s.Broker.Notifier <- notification
+	}
+	return d, nil
 }
 
 func (s *DeviceService) VerifyToken(token string) (string, error) {

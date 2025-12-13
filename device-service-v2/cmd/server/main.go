@@ -28,14 +28,13 @@ func main() {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 
-	if err := db.AutoMigrate(&repo.Device{}, &repo.Telemetry{}); err != nil {
+	if err := db.AutoMigrate(&repo.Device{}); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
 
 	deviceRepo := repo.NewDeviceRepository(db)
-	telemetryRepo := repo.NewTelemetryRepository(db)
 
-	r := http.NewRouter(cfg, deviceRepo, telemetryRepo)
+	r := http.NewRouter(cfg, deviceRepo)
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("Starting server at %s", addr)
