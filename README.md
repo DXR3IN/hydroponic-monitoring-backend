@@ -54,8 +54,8 @@ This service manages all device data, including CRUD operations, status streamin
 | **Authorized**| `GET` | `/api/devices/:id` | Retrieves specific details for a single Device. |
 | **Authorized**| `PUT` | `/api/devices/:id` | Updates an existing Device resource. |
 | **Authorized**| `DELETE` | `/api/devices/:id` | Deletes a Device resource. |
-| **Authorized**| `GET` | `/api/devices/stream` | **SSE Stream:** *Stream* status semua *device* milik pemilik yang diautentikasi. |
-| **IoT Device** | `POST` | `/api/device/iot/status` | **IoT Endpoint:** Memperbarui status konektivitas *device* (e.g., *online/offline*). |
+| **Authorized**| `GET` | `/api/devices/stream` | **SSE Stream:** *Stream* all *device* status with *real-time*. |
+| **IoT Device** | `POST` | `/api/device/iot/status` | **IoT Endpoint:** Renewal status *device* (e.g., *online/offline*). |
 
 ---
 
@@ -67,11 +67,11 @@ This service manages the handling, storage, and real-time streaming of sensor an
 
 | Akses | Method | Route | Deskripsi |
 | :---: | :---: | :--- | :--- |
-| **Authorized**| `GET` | `/api/telemetry/:device_id` | Mengambil semua data telemetri untuk *device* tertentu. |
-| **Authorized**| `GET` | `/api/telemetry/:device_id/latest` | Mengambil satu data telemetri **terbaru** (non-stream) untuk *device*. |
-| **Authorized**| `GET` | `/api/telemetry/:device_id/stream` | **SSE Stream:** Menjaga koneksi untuk pembaruan telemetri *real-time*. |
-| **IoT Device**| `POST` | `/api/telemetry/iot/telemetry` | **IoT Endpoint:** Menyisipkan data telemetri baru dari *device* IoT. |
-| **IoT Device**| `POST` | `/api/telemetry/iot/status` | **IoT Endpoint:** Endpoint status *device* (Saat ini dideklarasikan, fungsionalitasnya mungkin perlu disinkronkan dengan Device Service). |
+| **Authorized**| `GET` | `/api/telemetry/:device_id` | Get all data of telemetries for *device*. |
+| **Authorized**| `GET` | `/api/telemetry/:device_id/latest` | Get the **latest** data from telemetry (non-stream) for *device*. |
+| **Authorized**| `GET` | `/api/telemetry/:device_id/stream` | **SSE Stream:** *real-time* latest telemetry data. |
+| **IoT Device**| `POST` | `/api/telemetry/iot/telemetry` | **IoT Endpoint:** Post new data telemetri from *device* IoT. |
+| **IoT Device**| `POST` | `/api/telemetry/iot/status` | **IoT Endpoint:** Endpoint status *device*. |
 
 ---
 
