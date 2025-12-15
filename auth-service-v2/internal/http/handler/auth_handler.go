@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/DXR3IN/auth-service-v2/internal/service"
 	"github.com/gin-gonic/gin"
@@ -26,6 +27,12 @@ type loginReq struct {
 	Password string `json:"password" binding:"required"`
 }
 
+type UserResponese struct {
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req registerReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -33,7 +40,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	token, err := h.svc.Register(req.Name, req.Email, req.Password)
+	data, err := h.svc.Register(req.Name, req.Email, req.Password)
 
 	if err != nil {
 		if err == service.ErrUserExists {
@@ -44,7 +51,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "registered", "token": token})
+	c.JSON(http.StatusCreated, gin.H{"success": "true", "message": "registered", "token": data.Token, "user": UserResponese{data.Name, data.Email, data.CreatedAt}})
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -54,17 +61,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.svc.Login(req.Email, req.Password)
+	data, err := h.svc.Login(req.Email, req.Password)
 	if err != nil {
 		if err == service.ErrInvalidCredentials {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
+			c.JSON(http.StatusUnauthorized, gin.H{"success": "false", "error": "invalid credentials"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": "false", "error": "internal"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.JSON(http.StatusCreated, gin.H{"success": "true", "message": "registered", "token": data.Token, "user": UserResponese{data.Name, data.Email, data.CreatedAt}})
 }
 
 func (h *AuthHandler) UpdateName(c *gin.Context) {
@@ -77,14 +84,14 @@ func (h *AuthHandler) UpdateName(c *gin.Context) {
 	}
 	userID, exists := c.Get("owner_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": "false", "error": "unauthorized"})
 		return
 	}
 	if err := h.svc.UpdateName(userID.(string), req.NewName); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": "false", "error": "internal"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "name updated"})
+	c.JSON(http.StatusOK, gin.H{"success": "true", "message": "name updated"})
 }
 
 func (h *AuthHandler) UpdatePassword(c *gin.Context) {
@@ -97,34 +104,34 @@ func (h *AuthHandler) UpdatePassword(c *gin.Context) {
 	}
 	userID, exists := c.Get("owner_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": "false", "error": "unauthorized"})
 		return
 	}
 	if err := h.svc.UpdatePassword(userID.(string), req.NewPassword); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": "false", "error": "internal"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "password updated"})
+	c.JSON(http.StatusOK, gin.H{"success": "true", "message": "password updated"})
 }
 
 func (h *AuthHandler) Me(c *gin.Context) {
 	userID, exists := c.Get("owner_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"success": "false", "error": "unauthorized"})
 	}
 
 	u, err := h.svc.GetUserDataByID(userID.(string))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal"})
+		c.JSON(http.StatusInternalServerError, gin.H{"success": "false", "error": "internal"})
 		return
 	}
 
 	if u == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		c.JSON(http.StatusNotFound, gin.H{"success": "false", "error": "user not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"name": u.Name, "email": u.Email, "created_at": u.CreatedAt, "updated_at": u.UpdatedAt})
+	c.JSON(http.StatusOK, gin.H{"success": "true", "user": UserResponese{u.Name, u.Email, u.CreatedAt}})
 
 }
 

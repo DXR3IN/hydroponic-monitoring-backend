@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	models "github.com/DXR3IN/auth-service-v2/internal/domain"
 	"github.com/DXR3IN/auth-service-v2/internal/repository"
@@ -21,9 +22,10 @@ type AuthService struct {
 }
 
 type authResponse struct {
-	token string
-	name  string
-	email string
+	Token     string
+	Name      string
+	Email     string
+	CreatedAt time.Time
 }
 
 func NewAuthService(r repository.UserRepository, jwt *utils.JWTManager) *AuthService {
@@ -54,7 +56,7 @@ func (s *AuthService) Register(name, email, password string) (*authResponse, err
 	if err != nil {
 		return nil, err
 	}
-	return &authResponse{token: token, name: u.Name, email: u.Email}, nil
+	return &authResponse{Token: token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
 }
 
 func (s *AuthService) Login(email, password string) (*authResponse, error) {
@@ -76,7 +78,7 @@ func (s *AuthService) Login(email, password string) (*authResponse, error) {
 		return nil, err
 	}
 
-	return &authResponse{token: token, name: u.Name, email: u.Email}, nil
+	return &authResponse{Token: token, Name: u.Name, Email: u.Email, CreatedAt: u.CreatedAt}, nil
 }
 
 func (s *AuthService) GetUserDataByID(userID string) (*models.User, error) {
