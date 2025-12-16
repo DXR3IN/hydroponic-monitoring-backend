@@ -93,7 +93,7 @@ func (h *TelemetryHandler) StreamLatestTelemetry(c *gin.Context) {
 		select {
 		case data := <-clientChan:
 			if data.DeviceID == deviceID {
-				c.SSEvent("message", data)
+				c.SSEvent("telemetry_new_data", data)
 				c.Writer.Flush()
 			}
 		case <-c.Request.Context().Done():
