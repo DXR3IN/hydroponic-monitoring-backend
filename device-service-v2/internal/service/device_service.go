@@ -96,13 +96,13 @@ func (s *DeviceService) UpdateDeviceStatusByID(deviceID, status string) (*models
 	}
 	if s.Broker != nil {
 		notification := struct {
-			ID     string    `json:"device_id"`
-			Status string    `json:"status"`
-			Time   time.Time `json:"time"`
+			ID        string    `json:"id"`
+			Status    string    `json:"status"`
+			UpdatedAt time.Time `json:"updated_at"`
 		}{
-			ID:     d.ID,
-			Status: d.Status,
-			Time:   time.Now(),
+			ID:        d.ID,
+			Status:    d.Status,
+			UpdatedAt: time.Now(),
 		}
 
 		s.Broker.Notifier <- notification

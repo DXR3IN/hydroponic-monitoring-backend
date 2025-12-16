@@ -17,8 +17,9 @@ func NewDeviceHandler(svc *service.DeviceService) *DeviceHandler {
 }
 
 type responseWithMessage struct {
+	Success string      `json:"success"`
 	Message string      `json:"message"`
-	Devices interface{} `json:"devices"`
+	Devices interface{} `json:"data"`
 }
 
 type getAllDevicesResp struct {
@@ -49,6 +50,7 @@ func (h *DeviceHandler) CreateDevice(c *gin.Context) {
 	}
 
 	response := responseWithMessage{
+		Success: "true",
 		Message: "Device Created Successfully",
 		Devices: device,
 	}
@@ -85,7 +87,7 @@ func (h *DeviceHandler) GetDeviceWithID(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "internal server error"})
 		return
 	}
-	c.JSON(200, responseWithMessage{Message: "device found", Devices: device})
+	c.JSON(200, responseWithMessage{Success: "true", Message: "device found", Devices: device})
 }
 
 func (h *DeviceHandler) DeleteDevices(c *gin.Context) {
@@ -103,7 +105,7 @@ func (h *DeviceHandler) DeleteDevices(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "devices deleted"})
 }
 
-func (h *DeviceHandler) UpdateDeviceWithOwnerIDandID(c *gin.Context) {
+func (h *DeviceHandler) UpdateDeviceNameWithOwnerIDandID(c *gin.Context) {
 	ownerID := c.GetString("owner_id")
 	if ownerID == "" {
 		c.JSON(401, gin.H{"error": "unauthorized"})
@@ -126,6 +128,7 @@ func (h *DeviceHandler) UpdateDeviceWithOwnerIDandID(c *gin.Context) {
 		return
 	}
 	response := responseWithMessage{
+		Success: "true",
 		Message: "Device Updated Successfully",
 		Devices: device,
 	}
@@ -148,6 +151,7 @@ func (h *DeviceHandler) UpdateDeviceStatusByID(c *gin.Context) {
 		return
 	}
 	response := responseWithMessage{
+		Success: "true",
 		Message: "Device status update Successfully",
 		Devices: data,
 	}

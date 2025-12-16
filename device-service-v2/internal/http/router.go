@@ -24,7 +24,7 @@ func NewRouter(cfg *config.Config, deviceRepo repository.DeviceRepository) *ginp
 	device.POST("/", deviceHandler.CreateDevice)
 	device.GET("/", deviceHandler.ListDevicesByOwnerID)
 	device.GET("/:id", deviceHandler.GetDeviceWithID)
-	device.PUT("/:id", deviceHandler.UpdateDeviceWithOwnerIDandID)
+	device.PUT("/:id", deviceHandler.UpdateDeviceNameWithOwnerIDandID)
 	device.DELETE("/:id", deviceHandler.DeleteDevices)
 	device.GET("/stream", deviceHandler.StreamDeviceStatus)
 
