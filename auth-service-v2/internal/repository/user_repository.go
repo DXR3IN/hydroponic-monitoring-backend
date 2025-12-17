@@ -24,8 +24,6 @@ func (User) TableName() string {
 	return "users"
 }
 
-// BeforeCreate hook generates UUID before inserting a new user
-// This ensures UUID is always set, even if database default fails
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
@@ -33,7 +31,6 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
-// BeforeUpdate hook updates the UpdatedAt timestamp
 func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	u.UpdatedAt = time.Now()
 	return nil

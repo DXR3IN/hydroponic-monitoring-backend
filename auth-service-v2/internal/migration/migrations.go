@@ -47,7 +47,7 @@ func SetupMigrations(migrator *Migrator) {
 		},
 	)
 
-	// Example: Migration 003 - Add phone column (for future use)
+	// Migration 003 - Add phone column (for future use)
 	migrator.RegisterMigration(
 		"003",
 		"add_phone_to_users",

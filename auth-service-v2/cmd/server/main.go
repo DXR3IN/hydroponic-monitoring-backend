@@ -33,7 +33,7 @@ func main() {
 	// Connect to database with logging
 	db, err := gorm.Open(postgres.New(postgres.Config{
 		DSN:                  dsn,
-		PreferSimpleProtocol: true, // <--- ADD THIS LINE
+		PreferSimpleProtocol: true,
 	}), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
