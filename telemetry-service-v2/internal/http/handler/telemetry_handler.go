@@ -78,24 +78,28 @@ func (h *TelemetryHandler) InsertTelemetry(c *gin.Context) {
 func (h *TelemetryHandler) StreamLatestTelemetry(c *gin.Context) {
 	deviceID := c.Param("device_id")
 	clientChan := make(chan *models.Telemetry)
-	h.svc.Broker.NewClients <- clientChan
+
+	subscription := service.ClientSubscription{
+		Channel:  clientChan,
+		DeviceID: deviceID,
+	}
+
+	h.svc.Broker.NewClients <- subscription
 
 	defer func() {
-		h.svc.Broker.ClosingClients <- clientChan
+		// 3. Hapus klien yang sama saat koneksi ditutup
+		h.svc.Broker.ClosingClients <- subscription
 	}()
 
-	c.Writer.Header().Set("Content-Type", "text/event-stream")
-	c.Writer.Header().Set("Cache-Control", "no-cache")
-	c.Writer.Header().Set("Connection", "keep-alive")
-	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+	// ... headers ...
 
 	for {
 		select {
 		case data := <-clientChan:
-			if data.DeviceID == deviceID {
-				c.SSEvent("telemetry_new_data", data)
-				c.Writer.Flush()
-			}
+			// TIDAK ADA LAGI IF STATEMENT! Broker sudah memfilter data.
+			c.SSEvent("telemetry_new_data", data)
+			c.Writer.Flush()
+
 		case <-c.Request.Context().Done():
 			return
 		}

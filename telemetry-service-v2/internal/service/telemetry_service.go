@@ -62,8 +62,11 @@ func (s *TelemetryService) InsertTelemetry(t *models.Telemetry) (*models.Telemet
 	}
 	data := insertedRepoData.ToDomain()
 
-	// gave info to the broker that there is a new data on database
-	s.Broker.Notifier <- data
+	select {
+	case s.Broker.Notifier <- data:
+	default:
+		// Opsional: 
+	}
 
 	return data, nil
 }
