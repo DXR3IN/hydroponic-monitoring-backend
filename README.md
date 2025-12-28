@@ -1,13 +1,13 @@
-# 🚀 Telemetry Service V2 & Device Service V2
+# Telemetry Service V2 & Device Service V2
 
 This project implements a modular and isolated **Microservice** architecture, developed using the **Go** language and the **Gin** web framework. The system consists of three main independent services: the **Auth Service** (Identity Management), the **Device Service** (Device Management), and the **Telemetry Service** (Data Management).
 
-## 🛠️ System Requirements
+## System Requirements
 
 * Go **1.21+**
 * Docker & Docker Compose (for running databases and service orchestration)
 
-## 🏗️ Project Structure (Layered Architecture)
+## Project Structure (Layered Architecture)
 
 Each Go service in this project follows a strict layered structure to maintain clear separation of concerns. 
 
@@ -22,13 +22,13 @@ Each Go service in this project follows a strict layered structure to maintain c
 
 ---
 
-## 🔑 Core Service Components
+## Core Service Components
 
 ### 1. Auth Service (`auth-service-v2`)
 
 This service is solely responsible for user identity management, authentication, and credential updates.
 
-#### 🗺️ Routes (Endpoints):
+#### Routes (Endpoints):
 
 | Access | Method | Route | Description |
 | :---: | :---: | :--- | :--- |
@@ -41,11 +41,11 @@ This service is solely responsible for user identity management, authentication,
 
 ---
 
-### 2. 📱 Device Service (`device-service-v2`)
+### 2. Device Service (`device-service-v2`)
 
 This service manages all device data, including CRUD operations, status streaming, and owner authorization.
 
-#### 🗺️ Routes (Endpoints):
+#### Routes (Endpoints):
 
 | Access | Method | Route | Description |
 | :---: | :---: | :--- | :--- |
@@ -59,11 +59,11 @@ This service manages all device data, including CRUD operations, status streamin
 
 ---
 
-### 3. 📊 Telemetry Service (`telemetry-service-v2`)
+### 3. Telemetry Service (`telemetry-service-v2`)
 
 This service manages the handling, storage, and real-time streaming of sensor and telemetry data from IoT devices.
 
-#### 🗺️ Routes (Endpoints):
+#### Routes (Endpoints):
 
 | Akses | Method | Route | Deskripsi |
 | :---: | :---: | :--- | :--- |
@@ -75,7 +75,7 @@ This service manages the handling, storage, and real-time streaming of sensor an
 
 ---
 
-## 🔗 Authentication and Authorization Mechanism
+## Authentication and Authorization Mechanism
 
 Both services are integrated using the **JWT (JSON Web Token)** standard to secure access to `/api/` routes.
 
@@ -85,18 +85,18 @@ Both services are integrated using the **JWT (JSON Web Token)** standard to secu
 
 ---
 
-## 📡 Real-time Telemetry Streaming
+## Real-time Telemetry Streaming
 
 The **Telemetry Service** supports real-time data streaming using **SSE (Server-Sent Events)**. This allows the frontend to receive instant updates whenever an IoT device pushes new telemetry data.
 
-### 🏗️ The Broker Pattern
+### The Broker Pattern
 To handle multiple concurrent users, the service implements a **Broadcaster/Broker pattern**:
 
 1.  **Publisher (IoT Device):** When a device sends data to `/api/telemetry/iot/telemetry`, the service saves it to the database and pushes the data into the **Broker's Notifier channel**.
 2.  **Broker (Internal Service):** The Broker maintains a registry of all active client connections. It listens for new data and "broadcasts" a copy to every connected client's unique channel.
 3.  **Subscriber (Frontend):** The SSE handler creates a persistent HTTP connection. It filters the broadcasted data by `device_id` and streams matching events to the client in real-time.
 
-### 🗺️ Telemetry Routes for Data Access:
+### Telemetry Routes for Data Access:
 
 | Access | Method | Route | Description |
 | :---: | :---: | :--- | :--- |
@@ -105,7 +105,7 @@ To handle multiple concurrent users, the service implements a **Broadcaster/Brok
 | **Authorized** | `GET` | `/api/telemetry/:device_id/latest` | Retrieves the latest single telemetry record from DB. |
 | **Authorized** | `GET` | `/api/telemetry/:device_id/stream` | **Real-time SSE Stream:** Keeps a persistent connection open for live updates. |
 
-### 🛠️ How to Consume the Stream (Frontend Example)
+### How to Consume the Stream (Frontend Example)
 Since it uses the standard SSE protocol, you can easily consume the data using the native `EventSource` API in JavaScript:
 
 ```javascript
